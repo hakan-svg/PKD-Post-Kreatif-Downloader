@@ -87,18 +87,25 @@ async function isleriYenile() {
     durum.className = "is-durum " + durumSinifi;
     durum.textContent = durumMetni;
     ust.append(ad, durum);
+    const dugme = document.createElement("button");
+    dugme.className = "is-iptal";
+    dugme.textContent = "✕";
     if (AKTIF.has(k.durum)) {
-      const iptal = document.createElement("button");
-      iptal.className = "is-iptal";
-      iptal.textContent = "✕";
-      iptal.title = "İptal et";
-      iptal.onclick = async () => {
-        iptal.disabled = true;
+      dugme.title = "İptal et";
+      dugme.onclick = async () => {
+        dugme.disabled = true;
         await mesajGonder({ tip: "iptal", id: k.id });
         isleriYenile();
       };
-      ust.appendChild(iptal);
+    } else {
+      dugme.title = "Listeden kaldır";
+      dugme.onclick = async () => {
+        dugme.disabled = true;
+        await mesajGonder({ tip: "temizle", id: k.id });
+        isleriYenile();
+      };
     }
+    ust.appendChild(dugme);
     kutu.appendChild(ust);
 
     if (AKTIF.has(k.durum)) {
@@ -122,6 +129,13 @@ async function isleriYenile() {
       "veya PKD klasöründeki baslat.command dosyasına çift tıkla.", "hata");
   }
   $("sunucuNokta").classList.add("acik");
+
+  $("temizle").onclick = async () => {
+    $("temizle").disabled = true;
+    await mesajGonder({ tip: "temizle" });
+    await isleriYenile();
+    $("temizle").disabled = false;
+  };
 
   isleriYenile();
   setInterval(isleriYenile, 1000);

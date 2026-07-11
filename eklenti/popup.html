@@ -48,7 +48,15 @@
   .bolum-baslik {
     font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
     color: #98989d; text-transform: uppercase; margin: 14px 0 8px;
+    display: flex; align-items: center; justify-content: space-between;
   }
+  .temizle-btn {
+    border: none; background: none; color: #0a84ff; cursor: pointer;
+    font-size: 11px; font-weight: 600; font-family: inherit;
+    letter-spacing: 0; text-transform: none; padding: 0;
+  }
+  .temizle-btn:hover { text-decoration: underline; }
+  .temizle-btn:disabled { color: #5a5a5e; cursor: default; text-decoration: none; }
   .is {
     background: rgba(255, 255, 255, 0.06);
     border: 0.5px solid rgba(255, 255, 255, 0.09);
@@ -106,7 +114,10 @@
     <div id="mesaj"></div>
   </div>
 
-  <div class="bolum-baslik">İndirmeler</div>
+  <div class="bolum-baslik">
+    <span>İndirmeler</span>
+    <button class="temizle-btn" id="temizle">Geçmişi temizle</button>
+  </div>
   <div id="isListesi"></div>
 
   <script src="popup.js"></script>

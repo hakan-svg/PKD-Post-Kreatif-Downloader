@@ -336,6 +336,21 @@ class Istekci(BaseHTTPRequestHandler):
                     kayit["iptal"] = True
             return self._yanit({"tamam": bool(kayit)})
 
+        if self.path == "/temizle":
+            # Tamamlanmış/başarısız/iptal kayıtlarını geçmişten sil;
+            # süren indirmelere dokunma. Tek bir id verilirse yalnızca onu sil.
+            tek = istek.get("id")
+            aktif = ("hazirlaniyor", "indiriliyor", "donusturuluyor")
+            with KILIT:
+                if tek:
+                    if tek in ISLER and ISLER[tek]["durum"] not in aktif:
+                        del ISLER[tek]
+                else:
+                    for i in [i for i, k in ISLER.items()
+                              if k["durum"] not in aktif]:
+                        del ISLER[i]
+            return self._yanit({"tamam": True})
+
         url = (istek.get("url") or "").strip()
         if not url.startswith(("http://", "https://")):
             return self._yanit({"hata": "geçersiz adres"}, 400)

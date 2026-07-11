@@ -49,8 +49,8 @@ chrome.runtime.onMessage.addListener((mesaj, gonderen, yanitla) => {
         yanitla(await y.json());
         return;
       }
-      if (mesaj.tip === "iptal") {
-        const y = await fetch(`${SUNUCU}/iptal`, {
+      if (mesaj.tip === "iptal" || mesaj.tip === "temizle") {
+        const y = await fetch(`${SUNUCU}/${mesaj.tip}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: mesaj.id }),
