@@ -54,9 +54,11 @@ python3 -m venv .venv
 # 5) Otomatik başlatma kur + sunucuyu hemen başlat
 ./otomatik-baslat-kur.sh
 
-# 6) Eklentiyi masaüstüne kopyala — Chrome'da seçilecek klasör bu.
-#    (Yanlışlıkla ana klasörün seçilmesini önler; net isimli tek klasör.)
-EKLENTI="$HOME/Desktop/PKD-Eklenti"
+# 6) Eklentiyi kalıcı bir yere kopyala — Chrome'da seçilecek klasör bu.
+#    (Masaüstü gibi yanlışlıkla silinebilecek bir yer değil; Application
+#    Support gizli sistem klasörüdür, Chrome eklentiyi oradan çalıştırır.)
+EKLENTI="$HOME/Library/Application Support/PKD/PKD-Eklenti"
+mkdir -p "$(dirname "$EKLENTI")"
 rm -rf "$EKLENTI"
 cp -R "$DIZIN/eklenti" "$EKLENTI"
 open -R "$EKLENTI" 2>/dev/null || true
@@ -73,6 +75,6 @@ echo "✅ Kurulum bitti. Sunucu çalışıyor ve bilgisayar her açıldığında
 echo
 echo "Son adım — Chrome'da (30 saniye, bir kereliğine):"
 echo "  1) Açılan chrome://extensions sayfasında sağ üstten 'Geliştirici modu'nu aç"
-echo "  2) 'Paketlenmemiş öğe yükle'ye tıkla, MASAÜSTÜNDEKİ 'PKD-Eklenti' klasörünü seç"
-echo
-echo "Not: Masaüstündeki PKD-Eklenti klasörünü silme; Chrome eklentiyi oradan çalıştırır."
+echo "  2) Finder'da işaretlenen 'PKD-Eklenti' klasörünü chrome://extensions"
+echo "     sayfasının üzerine SÜRÜKLEYİP BIRAK (veya 'Paketlenmemiş öğe yükle'"
+echo "     deyip aynı klasörü seç)"

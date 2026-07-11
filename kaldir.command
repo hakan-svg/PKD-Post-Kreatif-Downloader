@@ -13,7 +13,8 @@ kaldir() {
   rm -f "$HOME/Library/LaunchAgents/com.video-indirici.plist"
   kill $(lsof -ti :8765) 2>/dev/null
 
-  # 2) Masaüstündeki eklenti klasörü ve günlük dosyası
+  # 2) Eklenti kopyaları (eski masaüstü konumu dahil) ve günlük dosyası
+  rm -rf "$HOME/Library/Application Support/PKD"
   rm -rf "$HOME/Desktop/PKD-Eklenti" "$HOME/Desktop/VideoIndirici-Eklenti"
   rm -f /tmp/video-indirici.log
 

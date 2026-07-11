@@ -60,10 +60,13 @@ async function indir(govde) {
 function durumYaz(k) {
   if (k.durum === "bitti") return ["İndirildi ✓", "tamam"];
   if (k.durum === "hata") return ["Başarısız", "hata"];
+  if (k.durum === "iptal") return ["İptal edildi", ""];
   if (k.durum === "donusturuluyor") return ["Dönüştürülüyor…", ""];
   if (k.durum === "indiriliyor") return [`%${k.yuzde || 0}`, ""];
   return ["Hazırlanıyor…", ""];
 }
+
+const AKTIF = new Set(["hazirlaniyor", "indiriliyor", "donusturuluyor"]);
 
 async function isleriYenile() {
   const y = await mesajGonder({ tip: "isler" });
@@ -85,10 +88,21 @@ async function isleriYenile() {
     durum.className = "is-durum " + durumSinifi;
     durum.textContent = durumMetni;
     ust.append(ad, durum);
+    if (AKTIF.has(k.durum)) {
+      const iptal = document.createElement("button");
+      iptal.className = "is-iptal";
+      iptal.textContent = "✕";
+      iptal.title = "İptal et";
+      iptal.onclick = async () => {
+        iptal.disabled = true;
+        await mesajGonder({ tip: "iptal", id: k.id });
+        isleriYenile();
+      };
+      ust.appendChild(iptal);
+    }
     kutu.appendChild(ust);
 
-    if (k.durum === "indiriliyor" || k.durum === "hazirlaniyor" ||
-        k.durum === "donusturuluyor") {
+    if (AKTIF.has(k.durum)) {
       const cubuk = document.createElement("div");
       cubuk.className = "cubuk";
       const ic = document.createElement("div");

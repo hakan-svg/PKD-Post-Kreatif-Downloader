@@ -13,6 +13,46 @@
     return chrome.runtime.sendMessage(m).catch(() => ({ hata: "sunucu-yok" }));
   }
 
+  // Akış sayfalarında (Twitter/X, LinkedIn, Instagram ana sayfa) sayfa adresi
+  // genel olduğundan, tıklanan videonun ait olduğu gönderinin linkini bul.
+  function videoUrlBul(video) {
+    const host = location.hostname;
+    try {
+      if (/(^|\.)(x|twitter)\.com$/.test(host)) {
+        const makale = video.closest("article");
+        const yol = makale && [...makale.querySelectorAll("a[href]")]
+          .map((a) => a.getAttribute("href"))
+          .find((h) => /^\/[^/]+\/status\/\d+$/.test(h));
+        if (yol) return location.origin + yol;
+      }
+      if (/(^|\.)linkedin\.com$/.test(host)) {
+        const kap = video.closest(
+          "[data-urn*='urn:li:activity'],[data-id*='urn:li:activity']");
+        const urn = kap &&
+          (kap.getAttribute("data-urn") || kap.getAttribute("data-id"));
+        const es = urn && urn.match(/urn:li:activity:\d+/);
+        if (es) return `https://www.linkedin.com/feed/update/${es[0]}/`;
+      }
+      if (/(^|\.)instagram\.com$/.test(host) && location.pathname === "/") {
+        const makale = video.closest("article");
+        const a = makale &&
+          makale.querySelector("a[href*='/reel/'],a[href*='/p/']");
+        if (a) return new URL(a.getAttribute("href"), location.origin).href;
+      }
+    } catch { /* bulunamazsa sayfa adresi kullanılır */ }
+    return location.href;
+  }
+
+  // Eklenti kaldırılır/güncellenirse açık sekmelerde kalan düğme ve panel
+  // DOM'da yetim kalıp tıklamaları engelleyebilir — kendimizi temizleyelim.
+  let zamanlayici = null;
+  function temizle() {
+    clearInterval(zamanlayici);
+    for (const [, d] of dugmeler) d.remove();
+    dugmeler.clear();
+    panelKapat();
+  }
+
   function dugmeOlustur(video) {
     const d = document.createElement("div");
     d.className = "vi-dugme";
@@ -21,7 +61,7 @@
     d.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      panelAc(d);
+      panelAc(video, d);
     });
     document.documentElement.appendChild(d);
     dugmeler.set(video, d);
@@ -58,6 +98,7 @@
   }, { passive: true });
 
   function tara() {
+    if (!chrome.runtime?.id) return temizle(); // eklenti kaldırılmış
     document.querySelectorAll("video").forEach((v) => {
       if (!dugmeler.has(v)) dugmeOlustur(v);
     });
@@ -71,7 +112,7 @@
     }
   }
 
-  async function panelAc(dugme) {
+  async function panelAc(video, dugme) {
     panelKapat();
     panel = document.createElement("div");
     panel.className = "vi-panel";
@@ -83,8 +124,9 @@
       '<span class="vi-durum">Video bilgisi alınıyor…</span></div>';
     document.documentElement.appendChild(panel);
 
+    const hedef = videoUrlBul(video);
     const yanit = await mesajGonder({
-      tip: "formatlar", url: location.href, ref: document.referrer,
+      tip: "formatlar", url: hedef, ref: document.referrer,
     });
     if (!panel) return;
     if (yanit.hata) return hataGoster(yanit.hata);
@@ -103,7 +145,7 @@
       const s = document.createElement("button");
       s.className = "vi-secenek" + (birincil ? " vi-birincil" : "");
       s.textContent = etiket;
-      s.onclick = () => indir(govde, yanit.baslik || "");
+      s.onclick = () => indir(hedef, govde, yanit.baslik || "");
       kutu.appendChild(s);
     };
     const cozunurlukler = yanit.cozunurlukler || [];
@@ -125,14 +167,14 @@
     setTimeout(panelKapat, 6000);
   }
 
-  async function indir(govde, baslik) {
+  async function indir(hedef, govde, baslik) {
     if (!panel) return;
     panel.innerHTML =
       '<div class="vi-tamam">⬇ İndirme başladı</div>' +
       '<div class="vi-durum" style="margin-top:4px">Bitince bildirim gelecek. ' +
       "Bu sayfayı kapatabilirsin.</div>";
     const y = await mesajGonder({
-      tip: "indir", url: location.href, ref: document.referrer, baslik, ...govde,
+      tip: "indir", url: hedef, ref: document.referrer, baslik, ...govde,
     });
     if (y && y.hata) return hataGoster(y.hata);
     setTimeout(panelKapat, 3000);
@@ -145,6 +187,6 @@
     { passive: true, capture: true });
   addEventListener("resize", konumla, { passive: true });
 
-  setInterval(tara, 1200);
+  zamanlayici = setInterval(tara, 1200);
   tara();
 })();

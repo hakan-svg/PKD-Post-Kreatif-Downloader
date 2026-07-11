@@ -190,10 +190,15 @@ def indirme_isi(is_id: str, istek: dict):
     baslik = istek.get("baslik") or url
 
     def kanca(d):
+        with KILIT:
+            iptal = ISLER[is_id].get("iptal")
+        if iptal:
+            raise yt_dlp.utils.DownloadCancelled("kullanıcı iptal etti")
         if d["status"] == "downloading":
             toplam = d.get("total_bytes") or d.get("total_bytes_estimate")
             with KILIT:
                 ISLER[is_id]["durum"] = "indiriliyor"
+                ISLER[is_id]["gecici"] = d.get("tmpfilename") or d.get("filename")
                 if toplam:
                     ISLER[is_id]["yuzde"] = round(d["downloaded_bytes"] * 100 / toplam)
 
@@ -243,6 +248,15 @@ def indirme_isi(is_id: str, istek: dict):
         with KILIT:
             ISLER[is_id].update(durum="bitti", yuzde=100, dosya=ad)
         bildirim(f"İndirildi: {baslik}")
+    except yt_dlp.utils.DownloadCancelled:
+        with KILIT:
+            ISLER[is_id]["durum"] = "iptal"
+            gecici = ISLER[is_id].get("gecici")
+        for kalinti in ([gecici, gecici + ".part"] if gecici else []):
+            try:
+                Path(kalinti).unlink(missing_ok=True)
+            except Exception:
+                pass
     except Exception as hata:
         with KILIT:
             ISLER[is_id].update(durum="hata", hata=str(hata)[:400])
@@ -288,6 +302,16 @@ class Istekci(BaseHTTPRequestHandler):
             istek = json.loads(self.rfile.read(boy) or b"{}")
         except json.JSONDecodeError:
             return self._yanit({"hata": "geçersiz JSON"}, 400)
+
+        if self.path == "/iptal":
+            is_id = istek.get("id") or ""
+            with KILIT:
+                kayit = ISLER.get(is_id)
+                if kayit and kayit["durum"] in ("hazirlaniyor", "indiriliyor",
+                                                "donusturuluyor"):
+                    kayit["iptal"] = True
+            return self._yanit({"tamam": bool(kayit)})
+
         url = (istek.get("url") or "").strip()
         if not url.startswith(("http://", "https://")):
             return self._yanit({"hata": "geçersiz adres"}, 400)

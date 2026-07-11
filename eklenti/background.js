@@ -49,6 +49,15 @@ chrome.runtime.onMessage.addListener((mesaj, gonderen, yanitla) => {
         yanitla(await y.json());
         return;
       }
+      if (mesaj.tip === "iptal") {
+        const y = await fetch(`${SUNUCU}/iptal`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: mesaj.id }),
+        });
+        yanitla(await y.json());
+        return;
+      }
       const yol = mesaj.tip === "formatlar" ? "/formatlar" : "/indir";
       const y = await fetch(SUNUCU + yol, {
         method: "POST",

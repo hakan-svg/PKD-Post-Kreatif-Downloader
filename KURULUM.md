@@ -68,8 +68,10 @@ bilgisayar her açıldığında kendiliğinden çalışır).
 2. Sağ üst köşedeki **Geliştirici modu** anahtarını aç (maviye dönsün)
 3. Sol üstte beliren **Paketlenmemiş öğe yükle** düğmesine tıkla
 4. Klasörü seç:
-   - **Mac:** Masaüstündeki **PKD-Eklenti** klasörü
-     (kurulum onu oraya kendisi koyar; bu klasörü sonradan silme)
+   - **Mac:** Kurulumun sonunda Finder'da işaretli açılan **PKD-Eklenti**
+     klasörünü `chrome://extensions` sayfasının üzerine **sürükleyip bırak**
+     — bu kadar. (Klasör güvenli bir sistem konumundadır, yanlışlıkla
+     silinmez.)
    - **Windows:** **PKD-Post-Kreatif-Downloader** klasörünün İÇİNDEKİ **eklenti** klasörü
      — dikkat: ana klasörün kendisini değil, içindeki **eklenti**'yi
      seçmezsen "Manifest dosyası eksik" hatası alırsın
