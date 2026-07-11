@@ -45,8 +45,13 @@ kendiliğinden başlar, bir daha elle başlatman gerekmez.
 
 1. Sunucuyu başlat: otomatik başlatma kurduysan hiçbir şey yapma;
    kurmadıysan `baslat.command` (Mac) / `baslat.bat` (Windows)
-2. Video olan sayfada eklenti simgesine tıkla
-3. Çözünürlüğü seç → dosya `~/Downloads/VideoIndirici/` klasörüne iner
+2. Fareyi videonun üzerine getir, sağ üstte çıkan düğmeye tıkla
+   (veya araç çubuğundaki eklenti simgesini kullan)
+3. Çözünürlüğü seç → dosya `~/Downloads/VideoIndirici/` klasörüne iner;
+   sayfa/Chrome kapatılabilir, bitince macOS bildirimi gelir
+
+İndirilen dosyalar QuickTime/Önizleme uyumludur: H.264/AAC tercih edilir,
+uyumsuz kodekler (VP9/AV1/Opus) otomatik dönüştürülür.
 
 Girişli içerik (Instagram, gizli hesaplar) için popup'taki
 "Chrome çerezlerini kullan" kutusunu işaretle.

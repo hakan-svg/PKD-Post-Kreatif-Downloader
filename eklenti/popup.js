@@ -1,5 +1,5 @@
-const SUNUCU = "http://127.0.0.1:8765";
-
+// Popup: sayfa içi düğmenin yedeği. İndirme sunucuda çalışır;
+// popup kapatılsa da sürer, bitince macOS bildirimi gelir.
 const $ = (id) => document.getElementById(id);
 let sayfaUrl = "";
 
@@ -8,13 +8,8 @@ function mesaj(yazi, tur = "") {
   $("mesaj").className = tur;
 }
 
-async function sunucuAyaktaMi() {
-  try {
-    const y = await fetch(`${SUNUCU}/ping`, { signal: AbortSignal.timeout(2000) });
-    return (await y.json()).tamam === true;
-  } catch {
-    return false;
-  }
+function mesajGonder(m) {
+  return chrome.runtime.sendMessage(m).catch(() => ({ hata: "sunucu-yok" }));
 }
 
 function sureYaz(sn) {
@@ -26,81 +21,46 @@ function sureYaz(sn) {
 async function formatlariGetir() {
   $("icerik").innerHTML = '<span class="donen"></span> Video bilgisi alınıyor…';
   $("butonlar").textContent = "";
-  const cerez = $("cerez").checked;
-  try {
-    const y = await fetch(`${SUNUCU}/formatlar`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: sayfaUrl, cerez }),
-    });
-    const v = await y.json();
-    if (v.hata) throw new Error(v.hata);
-
-    $("icerik").textContent = "";
-    $("baslik").hidden = false;
-    $("baslik").textContent = v.baslik;
-    $("meta").hidden = false;
-    $("meta").textContent = (v.site || "") + sureYaz(v.sure);
-
-    const ekle = (etiket, govde, birincil = false) => {
-      const b = document.createElement("button");
-      b.textContent = etiket;
-      if (birincil) b.className = "birincil";
-      b.onclick = () => indir(govde, etiket);
-      $("butonlar").appendChild(b);
-    };
-    if (v.cozunurlukler.length) {
-      v.cozunurlukler.forEach((h, i) => ekle(`${h}p`, { yukseklik: h }, i === 0));
-    } else {
-      ekle("En iyi kalite", {}, true);
-    }
-    ekle("Sadece ses", { sadeceSes: true });
-  } catch (h) {
-    $("icerik").textContent = "";
-    mesaj("Video bulunamadı: " + h.message, "hata");
+  mesaj("");
+  const v = await mesajGonder({
+    tip: "formatlar", url: sayfaUrl, cerez: $("cerez").checked,
+  });
+  $("icerik").textContent = "";
+  if (v.hata) {
+    return mesaj(v.hata === "sunucu-yok"
+      ? "Yerel sunucu çalışmıyor.\nvideo-indirici klasöründeki baslat.command dosyasına çift tıkla."
+      : "Video bulunamadı: " + v.hata, "hata");
   }
+
+  $("baslik").hidden = false;
+  $("baslik").textContent = v.baslik;
+  $("meta").hidden = false;
+  $("meta").textContent = (v.site || "") + sureYaz(v.sure);
+
+  const ekle = (etiket, govde, birincil = false) => {
+    const b = document.createElement("button");
+    b.textContent = etiket;
+    if (birincil) b.className = "birincil";
+    b.onclick = () => indir(govde, etiket);
+    $("butonlar").appendChild(b);
+  };
+  if (v.cozunurlukler.length) {
+    v.cozunurlukler.forEach((h, i) => ekle(`${h}p`, { yukseklik: h }, i === 0));
+  } else {
+    ekle("En iyi kalite", {}, true);
+  }
+  ekle("Sadece ses", { sadeceSes: true });
 }
 
 async function indir(govde, etiket) {
-  mesaj(`İndirme başlatıldı (${etiket})…`);
-  const y = await fetch(`${SUNUCU}/indir`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: sayfaUrl, cerez: $("cerez").checked, ...govde }),
+  const y = await mesajGonder({
+    tip: "indir", url: sayfaUrl, cerez: $("cerez").checked, ...govde,
   });
-  const { id, hata } = await y.json();
-  if (hata) return mesaj(hata, "hata");
-  await chrome.storage.local.set({ aktifIs: id });
-  ilerlemeIzle(id);
-}
-
-async function ilerlemeIzle(id) {
-  $("cubuk").style.display = "block";
-  const sayac = setInterval(async () => {
-    let d;
-    try {
-      d = await (await fetch(`${SUNUCU}/durum?id=${id}`)).json();
-    } catch {
-      clearInterval(sayac);
-      return mesaj("Sunucu bağlantısı koptu.", "hata");
-    }
-    $("cubukIc").style.width = (d.yuzde || 0) + "%";
-    if (d.durum === "bitti") {
-      clearInterval(sayac);
-      chrome.storage.local.remove("aktifIs");
-      mesaj(`✅ İndirildi: ${d.dosya}\n(Downloads/VideoIndirici)`, "tamam");
-    } else if (d.durum === "hata") {
-      clearInterval(sayac);
-      chrome.storage.local.remove("aktifIs");
-      mesaj("Hata: " + d.hata, "hata");
-    } else {
-      mesaj(`İndiriliyor… %${d.yuzde || 0}`);
-    }
-  }, 1000);
+  if (y.hata) return mesaj(y.hata, "hata");
+  mesaj(`✅ İndirme başladı (${etiket}).\nBitince bildirim gelecek; bu pencereyi ve sayfayı kapatabilirsin.\nDosya: İndirilenler/VideoIndirici`, "tamam");
 }
 
 (async () => {
-  // çerez tercihini hatırla
   const { cerezTercihi } = await chrome.storage.local.get("cerezTercihi");
   $("cerez").checked = !!cerezTercihi;
   $("cerez").onchange = () => {
@@ -108,7 +68,8 @@ async function ilerlemeIzle(id) {
     formatlariGetir();
   };
 
-  if (!(await sunucuAyaktaMi())) {
+  const ping = await mesajGonder({ tip: "ping" });
+  if (!ping.tamam) {
     $("icerik").textContent = "";
     return mesaj(
       "Yerel sunucu çalışmıyor.\nBaşlatmak için: video-indirici klasöründeki " +
@@ -122,10 +83,5 @@ async function ilerlemeIzle(id) {
     $("icerik").textContent = "";
     return mesaj("Bu sayfada indirilebilir video yok.", "hata");
   }
-
-  // yarım kalan indirme varsa göster
-  const { aktifIs } = await chrome.storage.local.get("aktifIs");
-  if (aktifIs) ilerlemeIzle(aktifIs);
-
   formatlariGetir();
 })();

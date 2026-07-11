@@ -13,6 +13,8 @@ Uç noktalar:
 
 import json
 import shutil
+import subprocess
+import sys
 import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,18 +26,23 @@ import yt_dlp
 PORT = 8765
 INDIRME_KLASORU = Path.home() / "Downloads" / "VideoIndirici"
 FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
+FFPROBE = shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
+
+# QuickTime/Önizleme'nin oynatabildiği kodekler
+UYUMLU_VIDEO = {"h264", "hevc", "mpeg4", "prores"}
+UYUMLU_SES = {"aac", "mp3", "alac", "pcm_s16le"}
 
 ISLER: dict[str, dict] = {}
 KILIT = threading.Lock()
 
 
-def temel_ayarlar(sayfa_url: str, cerez: bool) -> dict:
+def temel_ayarlar(sayfa_url: str, cerez: bool, ref: str = "") -> dict:
     ayar = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
-        # Alan adı kısıtlı embed'ler (ör. gömülü Vimeo) için sayfayı referer yap
-        "http_headers": {"Referer": sayfa_url},
+        # Alan adı kısıtlı embed'ler (ör. gömülü Vimeo) için üst sayfayı referer yap
+        "http_headers": {"Referer": ref or sayfa_url},
         "ffmpeg_location": FFMPEG,
     }
     if cerez:
@@ -45,8 +52,68 @@ def temel_ayarlar(sayfa_url: str, cerez: bool) -> dict:
     return ayar
 
 
-def formatlari_al(url: str, cerez: bool) -> dict:
-    with yt_dlp.YoutubeDL(temel_ayarlar(url, cerez)) as ydl:
+def bildirim(metin: str) -> None:
+    """İndirme bitince macOS bildirimi gösterir (eklenti/sayfa kapalı olsa da)."""
+    if sys.platform != "darwin":
+        return
+    try:
+        metin = metin.replace('"', "'").replace("\\", "")
+        subprocess.run(
+            ["osascript", "-e",
+             f'display notification "{metin}" with title "Video İndirici" sound name "Glass"'],
+            capture_output=True, timeout=10)
+    except Exception:
+        pass
+
+
+def _kodekler(dosya: str) -> tuple:
+    try:
+        c = subprocess.run(
+            [FFPROBE, "-v", "error", "-show_entries", "stream=codec_type,codec_name",
+             "-of", "json", dosya],
+            capture_output=True, text=True, timeout=30)
+        akislar = json.loads(c.stdout).get("streams", [])
+        video = next((a.get("codec_name") for a in akislar
+                      if a.get("codec_type") == "video"), None)
+        ses = next((a.get("codec_name") for a in akislar
+                    if a.get("codec_type") == "audio"), None)
+        return video, ses
+    except Exception:
+        return None, None
+
+
+def quicktime_uyumlu_yap(dosya: str) -> str:
+    """VP9/AV1/Opus gibi QuickTime'ın oynatamadığı kodekleri H.264/AAC mp4'e çevirir."""
+    yol = Path(dosya)
+    if not yol.exists() or yol.suffix.lower() not in {".mp4", ".mkv", ".webm", ".mov"}:
+        return dosya
+    video, ses = _kodekler(dosya)
+    v_tamam = video is None or video in UYUMLU_VIDEO
+    s_tamam = ses is None or ses in UYUMLU_SES
+    if v_tamam and s_tamam and yol.suffix.lower() in {".mp4", ".mov"}:
+        return dosya
+
+    ara = yol.parent / (yol.stem + ".uyumlu.mp4")
+    komut = [FFMPEG, "-y", "-i", str(yol),
+             "-c:v", "copy" if v_tamam else "libx264"]
+    if not v_tamam:
+        komut += ["-crf", "20", "-preset", "veryfast"]
+    komut += ["-c:a", "copy" if s_tamam else "aac"]
+    if not s_tamam:
+        komut += ["-b:a", "192k"]
+    komut += ["-movflags", "+faststart", str(ara)]
+    sonuc = subprocess.run(komut, capture_output=True)
+    if sonuc.returncode == 0 and ara.exists() and ara.stat().st_size > 0:
+        yol.unlink()
+        hedef = yol.with_suffix(".mp4")
+        ara.rename(hedef)
+        return str(hedef)
+    ara.unlink(missing_ok=True)
+    return dosya
+
+
+def formatlari_al(url: str, cerez: bool, ref: str = "") -> dict:
+    with yt_dlp.YoutubeDL(temel_ayarlar(url, cerez, ref)) as ydl:
         bilgi = ydl.extract_info(url, download=False)
     if bilgi.get("entries"):  # sayfada birden çok video/embed varsa ilkini al
         bilgi = next(e for e in bilgi["entries"] if e)
@@ -65,19 +132,11 @@ def formatlari_al(url: str, cerez: bool) -> dict:
     }
 
 
-def indirme_isi(is_id: str, url: str, yukseklik, sadece_ses: bool, cerez: bool):
-    def kanca(d):
-        if d["status"] == "downloading":
-            toplam = d.get("total_bytes") or d.get("total_bytes_estimate")
-            with KILIT:
-                ISLER[is_id]["durum"] = "indiriliyor"
-                if toplam:
-                    ISLER[is_id]["yuzde"] = round(d["downloaded_bytes"] * 100 / toplam)
-
-    ayar = temel_ayarlar(url, cerez)
+def indirme_isi(is_id: str, url: str, yukseklik, sadece_ses: bool,
+                cerez: bool, ref: str = ""):
+    ayar = temel_ayarlar(url, cerez, ref)
     ayar.update({
         "outtmpl": str(INDIRME_KLASORU / "%(title).100s [%(id)s].%(ext)s"),
-        "progress_hooks": [kanca],
         "merge_output_format": "mp4",
         "retries": 3,
     })
@@ -88,8 +147,11 @@ def indirme_isi(is_id: str, url: str, yukseklik, sadece_ses: bool, cerez: bool):
     elif yukseklik:
         ayar["format"] = (f"bv*[height<={yukseklik}]+ba/"
                           f"b[height<={yukseklik}]/bv*+ba/b")
+        # Aynı çözünürlükte QuickTime uyumlu H.264/AAC'yi tercih et
+        ayar["format_sort"] = ["res", "vcodec:h264", "acodec:aac"]
     else:
         ayar["format"] = "bv*+ba/b"
+        ayar["format_sort"] = ["res", "vcodec:h264", "acodec:aac"]
 
     try:
         with yt_dlp.YoutubeDL(ayar) as ydl:
@@ -97,12 +159,16 @@ def indirme_isi(is_id: str, url: str, yukseklik, sadece_ses: bool, cerez: bool):
         if bilgi.get("entries"):
             bilgi = next(e for e in bilgi["entries"] if e)
         dosya = (bilgi.get("requested_downloads") or [{}])[0].get("filepath", "")
+        if dosya and not sadece_ses:
+            dosya = quicktime_uyumlu_yap(dosya)
+        ad = Path(dosya).name if dosya else ""
         with KILIT:
-            ISLER[is_id].update(durum="bitti", yuzde=100,
-                                dosya=Path(dosya).name if dosya else "")
+            ISLER[is_id].update(durum="bitti", yuzde=100, dosya=ad)
+        bildirim(f"İndirildi: {ad}" if ad else "İndirme tamamlandı")
     except Exception as hata:
         with KILIT:
             ISLER[is_id].update(durum="hata", hata=str(hata)[:400])
+        bildirim("İndirilemedi — ayrıntı için eklentiye tıkla")
 
 
 class Istekci(BaseHTTPRequestHandler):
@@ -148,9 +214,11 @@ class Istekci(BaseHTTPRequestHandler):
         if not url.startswith(("http://", "https://")):
             return self._yanit({"hata": "geçersiz adres"}, 400)
 
+        ref = (istek.get("ref") or "").strip()
+
         if self.path == "/formatlar":
             try:
-                self._yanit(formatlari_al(url, cerez))
+                self._yanit(formatlari_al(url, cerez, ref))
             except Exception as hata:
                 self._yanit({"hata": str(hata)[:400]}, 500)
         elif self.path == "/indir":
@@ -160,7 +228,7 @@ class Istekci(BaseHTTPRequestHandler):
             threading.Thread(
                 target=indirme_isi,
                 args=(is_id, url, istek.get("yukseklik"),
-                      bool(istek.get("sadeceSes")), cerez),
+                      bool(istek.get("sadeceSes")), cerez, ref),
                 daemon=True,
             ).start()
             self._yanit({"id": is_id})

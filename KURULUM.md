@@ -81,11 +81,17 @@ bilgisayar her açıldığında kendiliğinden çalışır).
 ## KULLANIM
 
 1. Video olan herhangi bir sayfayı aç (YouTube, Twitter, Instagram…)
-2. Araç çubuğundaki **Video İndirici** simgesine tıkla
-3. 1-2 saniye içinde videonun adı ve kalite düğmeleri gelir
-   (örn. **1080p**, **720p**, **Sadece ses**)
-4. İstediğin kaliteye tıkla → video **İndirilenler / VideoIndirici**
-   klasörüne iner. Bitince popup'ta yeşil ✅ görürsün.
+2. Fareyi videonun üzerine getir — videonun **sağ üst köşesinde** yuvarlak
+   bir indirme düğmesi belirir
+3. Düğmeye tıkla → kalite seçenekleri açılır (örn. **1080p**, **720p**,
+   **Sadece ses**)
+4. İstediğine tıkla → "İndirme başladı" yazısını görünce sayfayı, Chrome'u,
+   her şeyi kapatabilirsin; indirme arka planda sürer
+5. Video **İndirilenler / VideoIndirici** klasörüne iner; bitince Mac'te
+   sağ üstte bildirim çıkar
+
+Düğme çıkmayan bir sayfada araç çubuğundaki **Video İndirici** simgesine
+tıklayarak da indirebilirsin.
 
 **Instagram veya girişli içerik inmezse:** popup'ın altındaki
 **"Chrome çerezlerini kullan"** kutusunu işaretleyip tekrar dene.

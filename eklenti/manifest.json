@@ -1,13 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Video İndirici",
-  "version": "1.0",
-  "description": "Açık sekmedeki videoyu yerel yt-dlp sunucusuyla, çözünürlük seçerek indirir.",
+  "version": "2.0",
+  "description": "Sayfadaki videoların üzerine indirme düğmesi ekler; çözünürlük seçerek yerel yt-dlp sunucusuyla indirir.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Videoyu indir"
   },
   "icons": { "128": "icon.png" },
   "permissions": ["activeTab", "tabs", "storage"],
-  "host_permissions": ["http://127.0.0.1:8765/*"]
+  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ]
 }
