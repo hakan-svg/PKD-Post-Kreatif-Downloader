@@ -34,6 +34,8 @@ PORT = 8765
 INDIRME_KLASORU = Path.home() / "Downloads" / "PKD"
 FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
 FFPROBE = shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
+BILDIRICI = shutil.which("terminal-notifier")  # özel ikonlu bildirim için
+BILDIRIM_IKONU = Path(__file__).parent / "bildirim-ikon.png"
 
 # QuickTime/Önizleme'nin oynatabildiği kodekler
 UYUMLU_VIDEO = {"h264", "hevc", "mpeg4", "prores"}
@@ -82,11 +84,17 @@ def bildirim(metin: str) -> None:
     if sys.platform != "darwin":
         return
     try:
-        metin = metin.replace('"', "'").replace("\\", "")
-        subprocess.run(
-            ["osascript", "-e",
-             f'display notification "{metin}" with title "PKD" sound name "Glass"'],
-            capture_output=True, timeout=10)
+        if BILDIRICI and BILDIRIM_IKONU.exists():
+            subprocess.run(
+                [BILDIRICI, "-title", "Post Kreatif Downloader", "-message", metin,
+                 "-appIcon", str(BILDIRIM_IKONU), "-sound", "Glass"],
+                capture_output=True, timeout=10)
+        else:  # terminal-notifier yoksa ikonsuz sistem bildirimi
+            metin = metin.replace('"', "'").replace("\\", "")
+            subprocess.run(
+                ["osascript", "-e",
+                 f'display notification "{metin}" with title "Post Kreatif Downloader" sound name "Glass"'],
+                capture_output=True, timeout=10)
     except Exception:
         pass
 

@@ -33,6 +33,14 @@ if ! command -v ffmpeg >/dev/null 2>&1 \
   "$BREW" install -q ffmpeg
 fi
 
+# 2b) İkonlu bildirimler için terminal-notifier (yoksa ikonsuz bildirime düşer)
+if ! command -v terminal-notifier >/dev/null 2>&1; then
+  BREW2="$(command -v brew || true)"
+  [ -z "$BREW2" ] && [ -x /opt/homebrew/bin/brew ] && BREW2=/opt/homebrew/bin/brew
+  [ -z "$BREW2" ] && [ -x /usr/local/bin/brew ] && BREW2=/usr/local/bin/brew
+  [ -n "$BREW2" ] && "$BREW2" install -q terminal-notifier || true
+fi
+
 # 3) Programı indir (git gerekmez)
 echo "==> Program indiriliyor: $DIZIN"
 mkdir -p "$DIZIN"
