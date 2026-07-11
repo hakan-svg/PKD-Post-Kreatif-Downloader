@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Video İndirici",
+  "version": "1.0",
+  "description": "Açık sekmedeki videoyu yerel yt-dlp sunucusuyla, çözünürlük seçerek indirir.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Videoyu indir"
+  },
+  "icons": { "128": "icon.png" },
+  "permissions": ["activeTab", "tabs", "storage"],
+  "host_permissions": ["http://127.0.0.1:8765/*"]
+}

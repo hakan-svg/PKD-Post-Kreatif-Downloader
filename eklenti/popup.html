@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    width: 320px; margin: 0; padding: 14px;
+    font: 13px/1.45 -apple-system, "Segoe UI", sans-serif;
+    background: #16181d; color: #e8eaed;
+  }
+  h1 { font-size: 14px; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+  h1 .nokta { width: 8px; height: 8px; border-radius: 50%; background: #666; }
+  h1 .nokta.acik { background: #34c759; }
+  #baslik { font-weight: 600; margin: 8px 0 2px; word-break: break-word; }
+  #meta { color: #9aa0a6; font-size: 12px; margin-bottom: 10px; }
+  .butonlar { display: flex; flex-wrap: wrap; gap: 6px; }
+  button {
+    border: 1px solid #3c4043; background: #24262c; color: #e8eaed;
+    border-radius: 8px; padding: 7px 12px; font-size: 13px; cursor: pointer;
+  }
+  button:hover { background: #2f3238; }
+  button.birincil { background: #2563eb; border-color: #2563eb; }
+  button.birincil:hover { background: #1d4ed8; }
+  #mesaj { margin-top: 10px; color: #9aa0a6; white-space: pre-wrap; word-break: break-word; }
+  #mesaj.hata { color: #f28b82; }
+  #mesaj.tamam { color: #34c759; }
+  .cubuk { margin-top: 10px; height: 6px; background: #2f3238; border-radius: 3px; overflow: hidden; display: none; }
+  .cubuk > div { height: 100%; width: 0%; background: #2563eb; transition: width .3s; }
+  label.cerez { display: flex; align-items: center; gap: 6px; margin-top: 12px; color: #9aa0a6; font-size: 12px; cursor: pointer; }
+  .donen { display: inline-block; width: 14px; height: 14px; border: 2px solid #3c4043; border-top-color: #2563eb; border-radius: 50%; animation: don 0.8s linear infinite; vertical-align: -2px; }
+  @keyframes don { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <h1><span class="nokta" id="sunucuNokta"></span> Video İndirici</h1>
+  <div id="icerik"><span class="donen"></span> Video bilgisi alınıyor…</div>
+  <div id="baslik" hidden></div>
+  <div id="meta" hidden></div>
+  <div class="butonlar" id="butonlar"></div>
+  <div class="cubuk" id="cubuk"><div id="cubukIc"></div></div>
+  <div id="mesaj"></div>
+  <label class="cerez"><input type="checkbox" id="cerez"> Chrome çerezlerini kullan (girişli içerik için)</label>
+  <script src="popup.js"></script>
+</body>
+</html>
