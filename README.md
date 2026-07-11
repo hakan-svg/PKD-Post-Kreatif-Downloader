@@ -11,6 +11,8 @@ bu ikili yapı gereklidir.
 
 ## Kurulum
 
+> Bilgisayardan anlamayanlar için adım adım anlatım: **[KURULUM.md](KURULUM.md)**
+
 Gereksinimler: Python 3.10+, ffmpeg, Google Chrome.
 
 **macOS / Linux:**
